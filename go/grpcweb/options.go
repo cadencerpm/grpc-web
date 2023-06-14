@@ -4,6 +4,7 @@
 package grpcweb
 
 import (
+	"github.com/rs/cors"
 	"net/http"
 	"time"
 
@@ -33,6 +34,7 @@ type options struct {
 	websocketCompressionMode       websocket.CompressionMode
 	allowNonRootResources          bool
 	endpointsFunc                  *func() []string
+	cors                           *cors.Cors
 }
 
 func evaluateOptions(opts []Option) *options {
@@ -118,6 +120,14 @@ func WithEndpointsFunc(endpointsFunc func() []string) Option {
 func WithAllowedRequestHeaders(headers []string) Option {
 	return func(o *options) {
 		o.allowedRequestHeaders = headers
+	}
+}
+
+// WithCors allows for directly passing in the cors handler. This option will override any existing cors settings and
+// use this handler directly.
+func WithCors(cors *cors.Cors) Option {
+	return func(o *options) {
+		o.cors = cors
 	}
 }
 

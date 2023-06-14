@@ -17,9 +17,11 @@ import (
 	"nhooyr.io/websocket"
 )
 
+const UserAgentHeader = "U-A"
+
 var (
 	internalRequestHeadersWhitelist = []string{
-		"U-A", // for gRPC-Web User Agent indicator.
+		UserAgentHeader, // for gRPC-Web User Agent indicator.
 	}
 )
 
@@ -66,14 +68,20 @@ func WrapHandler(handler http.Handler, options ...Option) *WrappedGrpcServer {
 
 func wrapGrpc(options []Option, handler http.Handler, endpointsFunc func() []string) *WrappedGrpcServer {
 	opts := evaluateOptions(options)
+
 	allowedHeaders := append(opts.allowedRequestHeaders, internalRequestHeadersWhitelist...)
-	corsWrapper := cors.New(cors.Options{
-		AllowOriginFunc:  opts.originFunc,
-		AllowedHeaders:   allowedHeaders,
-		ExposedHeaders:   nil,  // make sure that this is *nil*, otherwise the WebResponse overwrite will not work.
-		AllowCredentials: true, // always allow credentials, otherwise :authorization headers won't work
-		MaxAge:           int(opts.corsMaxAge.Seconds()),
-	})
+	var corsWrapper *cors.Cors
+	if opts.cors != nil {
+		corsWrapper = opts.cors
+	} else {
+		corsWrapper = cors.New(cors.Options{
+			AllowOriginFunc:  opts.originFunc,
+			AllowedHeaders:   allowedHeaders,
+			ExposedHeaders:   nil,  // make sure that this is *nil*, otherwise the WebResponse overwrite will not work.
+			AllowCredentials: true, // always allow credentials, otherwise :authorization headers won't work
+			MaxAge:           int(opts.corsMaxAge.Seconds()),
+		})
+	}
 	websocketOriginFunc := opts.websocketOriginFunc
 	if websocketOriginFunc == nil {
 		websocketOriginFunc = defaultWebsocketOriginFunc
